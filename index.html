@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="JsQuizApp_logo.png"/>
+    <style>
+      .rounded-favicon {
+      border-radius: 50%;
+      overflow: hidden;
+      width: 32px;
+      height: 32px;
+      object-fit: cover;
+      }
+    </style>
+    <script>
+      // Replace favicon with a rounded version using Tailwind-like classes
+      window.addEventListener('DOMContentLoaded', () => {
+      const link = document.querySelector('link[rel="icon"]');
+      if (link) {
+        const img = document.createElement('img');
+        img.src = link.href;
+        img.className = 'rounded-favicon';
+        img.style.display = 'none';
+        document.head.appendChild(img);
+        img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 32;
+        canvas.height = 32;
+        const ctx = canvas.getContext('2d');
+        ctx.beginPath();
+        ctx.arc(16, 16, 16, 0, Math.PI * 2, true);
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(img, 0, 0, 32, 32);
+        link.href = canvas.toDataURL('image/png');
+        img.remove();
+        };
+      }
+      });
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Java Script Quiz App</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
