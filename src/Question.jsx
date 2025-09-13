@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import OptionSelect from './OptionSelect.jsx';
 
-// Data for the Core JavaScript quiz
 export const quizQuestions = [
   {
     question: "Which keyword is used to declare a variable in JavaScript?",
@@ -68,28 +67,29 @@ export const quizQuestions = [
   }
 ];
 
-// This component renders a single quiz question and its options.
 function Question({ currentQuestion, onAnswerSelected, onNextQuestion }) { 
-  // State to track the currently selected option
   const [selectedOption, setSelectedOption] = useState(null);
-  // State for the question timer
   const [timeLeft, setTimeLeft] = useState(60); 
-  // Ref to store the timer ID, which persists across renders
   const timerRef = useRef(null);
 
-  // Effect to reset the timer and selected option when the question changes
+  // This useEffect fixes the bug by resetting state when the question changes
   useEffect(() => {
     setSelectedOption(null);
     setTimeLeft(60);
     timerRef.current = setInterval(() => {
       setTimeLeft(prevTime => prevTime - 1);
     }, 1000);
-    // Cleanup function to clear the interval on unmount or dependency change
     return () => clearInterval(timerRef.current);
   }, [currentQuestion]);
 
-  // Effect to handle the time-out logic
+  // This useEffect now handles the sound effect and time-out logic
   useEffect(() => {
+    // Play a sound effect when time is low
+    if (timeLeft === 10) {
+      const audio = new Audio('/audio/tick-tock.mp3'); // Path to your sound file
+      audio.play();
+    }
+    // Automatically advance to the next question when time runs out
     if (timeLeft === 0) {
       clearInterval(timerRef.current);
       if (onNextQuestion) {
@@ -98,7 +98,6 @@ function Question({ currentQuestion, onAnswerSelected, onNextQuestion }) {
     }
   }, [timeLeft, onNextQuestion]);
 
-  // Handler for when a user selects an option
   function handleOptionSelect(option) {
     setSelectedOption(option);
     if (onAnswerSelected) {
@@ -109,12 +108,18 @@ function Question({ currentQuestion, onAnswerSelected, onNextQuestion }) {
   return (
     <div className="question-container">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="timer text-2xl font-bold text-blue-700">Time Left: {timeLeft}s</h2>
-        <span className="text-lg font-semibold text-green-500">
+        <h2 
+          className={`timer text-2xl font-bold px-4 py-2 rounded-lg shadow-md transition-colors duration-500 
+            ${timeLeft <= 10 ? 'bg-red-500 text-white animate-pulse' : 'bg-blue-100 text-blue-700'}`}
+        >
+          Time Left: {timeLeft}s
+        </h2>
+        {/* The points display is here, with enhanced styling */}
+        <span className="text-lg font-bold text-green-500 bg-green-100 px-4 py-2 rounded-lg">
           +10 Points
         </span>
       </div>
-      <h2 className="text-xl md:text-2xl font-semibold text-slate-100 mb-6">
+      <h2 className="text-2xl md:text-3xl font-semibold text-slate-100 mb-6 leading-relaxed">
         {currentQuestion.question}
       </h2>
       {selectedOption && <h2>You selected: {selectedOption}</h2>}

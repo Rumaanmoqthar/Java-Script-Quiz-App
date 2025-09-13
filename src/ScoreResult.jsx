@@ -5,11 +5,17 @@ function ScoreResult({ score, totalQuestions, onRestart, quizQuestions, currentT
   
   return (
     <div className="text-center">
-      <h2 className="text-3xl font-bold mb-2">Quiz Complete!</h2>
-      <p className="text-5xl font-extrabold mb-4 text-cyan-400">{score} <span className="text-3xl text-slate-400">/ {totalQuestions * 10}</span></p>
+      {/* Enhanced header with a subtle gradient */}
+      <h2 className="text-3xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400">
+        Quiz Complete!
+      </h2>
+      
+      {/* More prominent score display */}
+      <p className="text-6xl font-extrabold mb-4 text-cyan-400">
+        {score} <span className="text-3xl text-slate-400">/ {totalQuestions * 10}</span>
+      </p>
       
       {currentTopic === "Core JavaScript Concepts" ? (
-        // Message for the Core JavaScript Quiz
         isPassingScore ? (
           <div className="mb-6 p-4 bg-green-500/20 border border-green-400 rounded-lg">
             <h3 className="text-xl font-bold text-green-400">Congratulations! 🎉</h3>
@@ -28,7 +34,6 @@ function ScoreResult({ score, totalQuestions, onRestart, quizQuestions, currentT
           </div>
         )
       ) : (
-        // Generic message for all other topics
         <div className="mb-6 p-4 bg-purple-500/20 border border-purple-400 rounded-lg">
           <h3 className="text-xl font-bold text-purple-400">Great Job! 👍</h3>
           <p className="text-sm text-purple-200 mt-2">
