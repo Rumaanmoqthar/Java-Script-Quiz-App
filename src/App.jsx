@@ -22,16 +22,14 @@ function App() {
   // State to hold the timers for each question individually
   const [questionTimers, setQuestionTimers] = useState({});
 
-  const audioRef = useRef(null);
+  // NOTE: The audioRef has been removed from here.
 
   // This is the master timer effect. It runs only for the current question.
   useEffect(() => {
-    // Don't run the timer if the quiz is not in progress.
     if (quizPhase !== 'in-progress') {
       return;
     }
 
-    // When the user first visits a question, initialize its timer to 60 seconds.
     if (questionTimers[currentQuestionIndex] === undefined) {
       setQuestionTimers(prevTimers => ({
         ...prevTimers,
@@ -39,39 +37,25 @@ function App() {
       }));
     }
 
-    // Set up an interval to decrement the timer for the *current* question.
     const timerId = setInterval(() => {
       setQuestionTimers(prevTimers => {
         const currentTime = prevTimers[currentQuestionIndex];
         
-        // If time runs out, stop the timer and mark the question as expired.
         if (currentTime <= 1) {
           clearInterval(timerId);
           setExpiredQuestions(prev => new Set(prev).add(currentQuestionIndex));
           return { ...prevTimers, [currentQuestionIndex]: 0 };
         }
         
-        // Otherwise, just decrement the time.
         return { ...prevTimers, [currentQuestionIndex]: currentTime - 1 };
       });
     }, 1000);
 
-    // This cleanup function is crucial. It clears the interval when the user
-    // navigates to another question, effectively "pausing" the timer.
     return () => clearInterval(timerId);
   }, [quizPhase, currentQuestionIndex, currentTopicQuestions]);
 
-  // This separate effect handles the ticking sound when time is low.
-  useEffect(() => {
-    const currentTime = questionTimers[currentQuestionIndex];
-    if (currentTime === 10) {
-      if (!audioRef.current) {
-        audioRef.current = new Audio('/audio/tick-tock.mp3');
-      }
-      audioRef.current.play();
-    }
-  }, [questionTimers, currentQuestionIndex]);
-
+  // NOTE: The useEffect for handling audio has been removed from here.
+  // It is now handled inside Question.jsx
 
   function handleStartz() {
     setQuizPhase('topic-select');
@@ -92,12 +76,10 @@ function App() {
     setScore(0);
     setAnsweredQuestions(new Set());
     setExpiredQuestions(new Set());
-    // Reset all timers when a new topic is selected.
     setQuestionTimers({});
   }
 
   function handleAnswerSelected(selectedOption) {
-    // Prevent answering if the question has already been answered or if time is up.
     if (answeredQuestions.has(currentQuestionIndex) || expiredQuestions.has(currentQuestionIndex)) {
       return;
     }
@@ -106,7 +88,6 @@ function App() {
     if (selectedOption === currentQuestion.correctAnswer) {
       setScore(prevScore => prevScore + 10);
     }
-    // Mark the question as answered to prevent score changes on re-visit.
     setAnsweredQuestions(prev => new Set(prev).add(currentQuestionIndex));
   }
 
@@ -134,9 +115,17 @@ function App() {
   return (
     <div className="min-h-screen text-white flex items-center justify-center font-sans p-4 bg-slate-900">
       <div className="bg-slate-800 p-8 rounded-2xl shadow-lg w-full max-w-2xl">
-        {quizPhase === 'in-progress' && (
-          <div className="text-xl font-bold text-yellow-300 flex justify-end mb-4">
-             Score: {score} Points
+        {quizPhase !== 'start' && (
+          <div className="flex justify-end mb-4 h-8 items-center">
+            {quizPhase === 'results' ? (
+              <span className="text-xl font-bold text-yellow-300">
+                Final Score: {score} Points
+              </span>
+            ) : (
+              <span className="text-sm italic text-gray-400">
+                Score will be revealed at the end.
+              </span>
+            )}
           </div>
         )}
         
@@ -157,7 +146,6 @@ function App() {
                   onAnswerSelected={handleAnswerSelected}
                   currentQuestionIndex={currentQuestionIndex}
                   totalQuestions={currentTopicQuestions.length}
-                  // Pass the correct time and expiration status for the current question
                   timeLeft={questionTimers[currentQuestionIndex] ?? 60}
                   isExpired={expiredQuestions.has(currentQuestionIndex)}
                   answered={answeredQuestions.has(currentQuestionIndex)}

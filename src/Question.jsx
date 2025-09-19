@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import OptionSelect from './OptionSelect.jsx';
 
 // quizQuestions array remains the same...
@@ -66,22 +66,35 @@ export const quizQuestions = [
     correctAnswer: "break",
     example: "for (let i = 0; i < 5; i++) {\n  if (i === 3) {\n    break; // Loop will stop here\n  }\n}"
   }
-
 ];
-
 
 function Question({ currentQuestion, onAnswerSelected, currentQuestionIndex, totalQuestions, timeLeft, isExpired }) { 
   const [selectedOption, setSelectedOption] = useState(null);
+  const audioRef = useRef(null);
 
-  // This effect resets the selected option when the question changes.
+  // This effect now includes the cleanup function for the audio.
+  // When the question changes, it will pause and reset any playing audio.
   useEffect(() => {
     setSelectedOption(null);
+    // Cleanup function for the audio
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+    };
   }, [currentQuestion]);
 
-  function handleOptionSelect(option) {
-    // Prevent selecting an option if the time has expired.
-    if (isExpired) return;
+  // This effect plays the sound when the timer reaches 10 seconds.
+  useEffect(() => {
+    if (timeLeft === 10) {
+      audioRef.current = new Audio('/audio/tick-tock.mp3');
+      audioRef.current.play();
+    }
+  }, [timeLeft]);
 
+  function handleOptionSelect(option) {
+    if (isExpired) return;
     setSelectedOption(option);
     if (onAnswerSelected) {
       onAnswerSelected(option);
@@ -97,18 +110,17 @@ function Question({ currentQuestion, onAnswerSelected, currentQuestionIndex, tot
         >
           Time Left: {timeLeft}s
         </h2>
+        {/* The "+10 Points" badge has been restored here */}
         <span className="text-lg font-bold text-green-500 bg-green-100 px-4 py-2 rounded-lg">
           +10 Points
         </span>
       </div>
       
       <h3 className="text-xl text-slate-400 mb-2">Question {currentQuestionIndex + 1} of {totalQuestions}</h3>
-
       <h2 className="text-2xl md:text-3xl font-semibold text-slate-100 mb-6 leading-relaxed">
         {currentQuestion.question}
       </h2>
       
-      {/* Inform the user that time is up and they cannot answer */}
       {isExpired && (
         <div className="text-center p-3 mb-4 bg-red-900 border border-red-700 rounded-lg">
           <p className="font-bold text-red-300">Time's up for this question!</p>
@@ -122,7 +134,6 @@ function Question({ currentQuestion, onAnswerSelected, currentQuestionIndex, tot
             option={choice} 
             selectedOption={selectedOption}
             onSelect={handleOptionSelect}
-            // Pass the disabled status to the OptionSelect component
             isDisabled={isExpired}
           />
         ))}

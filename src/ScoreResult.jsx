@@ -1,19 +1,36 @@
 import React from 'react';
 
+// === CHANGE IS HERE ===
+// Array of quotes to be displayed randomly on the results screen
+const quotes = [
+  { text: "The only way to learn a new programming language is by writing programs in it.", author: "Dennis Ritchie" },
+  { text: "Any fool can write code that a computer can understand. Good programmers write code that humans can understand.", author: "Martin Fowler" },
+  { text: "First, solve the problem. Then, write the code.", author: "John Johnson" },
+  { text: "Knowledge is power.", author: "Francis Bacon" }
+];
+
 function ScoreResult({ score, totalQuestions, onRestart, quizQuestions, currentTopic }) {
   const isPassingScore = score >= 60;
   
+  // Select a random quote to display
+  const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+  
   return (
     <div className="text-center">
-      {/* Enhanced header with a subtle gradient */}
       <h2 className="text-3xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400">
         Quiz Complete!
       </h2>
       
-      {/* More prominent score display */}
       <p className="text-6xl font-extrabold mb-4 text-cyan-400">
         {score} <span className="text-3xl text-slate-400">/ {totalQuestions * 10}</span>
       </p>
+      
+      {/* === CHANGE IS HERE === */}
+      {/* This new block displays the randomly selected quote */}
+      <div className="my-6 italic text-slate-400 border-l-4 border-slate-600 pl-4">
+        <p>"{randomQuote.text}"</p>
+        <p className="text-right mt-1 text-sm font-semibold">- {randomQuote.author}</p>
+      </div>
       
       {currentTopic === "Core JavaScript Concepts" ? (
         isPassingScore ? (
