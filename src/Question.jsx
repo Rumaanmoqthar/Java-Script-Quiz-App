@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import OptionSelect from './OptionSelect.jsx';
 
+// quizQuestions array remains the same...
 export const quizQuestions = [
-  {
+   {
     question: "Which keyword is used to declare a variable in JavaScript?",
     choices: ["var", "let", "const", "all of the above"],
     correctAnswer: "all of the above",
@@ -65,40 +66,22 @@ export const quizQuestions = [
     correctAnswer: "break",
     example: "for (let i = 0; i < 5; i++) {\n  if (i === 3) {\n    break; // Loop will stop here\n  }\n}"
   }
+
 ];
 
-function Question({ currentQuestion, onAnswerSelected, onNextQuestion }) { 
-  const [selectedOption, setSelectedOption] = useState(null);
-  const [timeLeft, setTimeLeft] = useState(60); 
-  const timerRef = useRef(null);
 
-  // This useEffect fixes the bug by resetting state when the question changes
+function Question({ currentQuestion, onAnswerSelected, currentQuestionIndex, totalQuestions, timeLeft, isExpired }) { 
+  const [selectedOption, setSelectedOption] = useState(null);
+
+  // This effect resets the selected option when the question changes.
   useEffect(() => {
     setSelectedOption(null);
-    setTimeLeft(60);
-    timerRef.current = setInterval(() => {
-      setTimeLeft(prevTime => prevTime - 1);
-    }, 1000);
-    return () => clearInterval(timerRef.current);
   }, [currentQuestion]);
 
-  // This useEffect now handles the sound effect and time-out logic
-  useEffect(() => {
-    // Play a sound effect when time is low
-    if (timeLeft === 10) {
-      const audio = new Audio('/audio/tick-tock.mp3'); // Path to your sound file
-      audio.play();
-    }
-    // Automatically advance to the next question when time runs out
-    if (timeLeft === 0) {
-      clearInterval(timerRef.current);
-      if (onNextQuestion) {
-        onNextQuestion();
-      }
-    }
-  }, [timeLeft, onNextQuestion]);
-
   function handleOptionSelect(option) {
+    // Prevent selecting an option if the time has expired.
+    if (isExpired) return;
+
     setSelectedOption(option);
     if (onAnswerSelected) {
       onAnswerSelected(option);
@@ -114,22 +97,33 @@ function Question({ currentQuestion, onAnswerSelected, onNextQuestion }) {
         >
           Time Left: {timeLeft}s
         </h2>
-        {/* The points display is here, with enhanced styling */}
         <span className="text-lg font-bold text-green-500 bg-green-100 px-4 py-2 rounded-lg">
           +10 Points
         </span>
       </div>
+      
+      <h3 className="text-xl text-slate-400 mb-2">Question {currentQuestionIndex + 1} of {totalQuestions}</h3>
+
       <h2 className="text-2xl md:text-3xl font-semibold text-slate-100 mb-6 leading-relaxed">
         {currentQuestion.question}
       </h2>
-      {selectedOption && <h2>You selected: {selectedOption}</h2>}
+      
+      {/* Inform the user that time is up and they cannot answer */}
+      {isExpired && (
+        <div className="text-center p-3 mb-4 bg-red-900 border border-red-700 rounded-lg">
+          <p className="font-bold text-red-300">Time's up for this question!</p>
+        </div>
+      )}
+      
       <div>
         {currentQuestion.choices.map((choice, index) => (
           <OptionSelect 
             key={index} 
             option={choice} 
             selectedOption={selectedOption}
-            onSelect={handleOptionSelect} 
+            onSelect={handleOptionSelect}
+            // Pass the disabled status to the OptionSelect component
+            isDisabled={isExpired}
           />
         ))}
       </div>

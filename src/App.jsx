@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Question from "./Question.jsx";
 import StartQuiz from "./StartQuiz.jsx";
 import NextQuestion from "./NextQuestion.jsx";
@@ -8,30 +8,75 @@ import TopicSelect from "./TopicSelect.jsx";
 import { quizQuestions } from "./Question.jsx";
 import { JsTopicQuestions } from './TopicQuestions.jsx';
 
-// The main application component
 function App() {
-  // Manages the main application state to control which screen is visible
   const [quizPhase, setQuizPhase] = useState('start');
-  // Tracks the current question index
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  // Stores the user's score for the current quiz
   const [score, setScore] = useState(0);
-  // Holds the questions for the current topic
   const [currentTopicQuestions, setCurrentTopicQuestions] = useState([]);
-  // Stores the name of the current topic
   const [currentTopic, setCurrentTopic] = useState("");
-  // Stores the final score from the Core JavaScript quiz to manage unlocking
   const [coreQuizScore, setCoreQuizScore] = useState(0);
-
-  // A Set to track which questions have already been answered correctly
+  
   const [answeredQuestions, setAnsweredQuestions] = useState(new Set());
+  const [expiredQuestions, setExpiredQuestions] = useState(new Set());
+  
+  // State to hold the timers for each question individually
+  const [questionTimers, setQuestionTimers] = useState({});
 
-  // Function to start the quiz and transition to topic selection
+  const audioRef = useRef(null);
+
+  // This is the master timer effect. It runs only for the current question.
+  useEffect(() => {
+    // Don't run the timer if the quiz is not in progress.
+    if (quizPhase !== 'in-progress') {
+      return;
+    }
+
+    // When the user first visits a question, initialize its timer to 60 seconds.
+    if (questionTimers[currentQuestionIndex] === undefined) {
+      setQuestionTimers(prevTimers => ({
+        ...prevTimers,
+        [currentQuestionIndex]: 60,
+      }));
+    }
+
+    // Set up an interval to decrement the timer for the *current* question.
+    const timerId = setInterval(() => {
+      setQuestionTimers(prevTimers => {
+        const currentTime = prevTimers[currentQuestionIndex];
+        
+        // If time runs out, stop the timer and mark the question as expired.
+        if (currentTime <= 1) {
+          clearInterval(timerId);
+          setExpiredQuestions(prev => new Set(prev).add(currentQuestionIndex));
+          return { ...prevTimers, [currentQuestionIndex]: 0 };
+        }
+        
+        // Otherwise, just decrement the time.
+        return { ...prevTimers, [currentQuestionIndex]: currentTime - 1 };
+      });
+    }, 1000);
+
+    // This cleanup function is crucial. It clears the interval when the user
+    // navigates to another question, effectively "pausing" the timer.
+    return () => clearInterval(timerId);
+  }, [quizPhase, currentQuestionIndex, currentTopicQuestions]);
+
+  // This separate effect handles the ticking sound when time is low.
+  useEffect(() => {
+    const currentTime = questionTimers[currentQuestionIndex];
+    if (currentTime === 10) {
+      if (!audioRef.current) {
+        audioRef.current = new Audio('/audio/tick-tock.mp3');
+      }
+      audioRef.current.play();
+    }
+  }, [questionTimers, currentQuestionIndex]);
+
+
   function handleStartz() {
     setQuizPhase('topic-select');
   }
 
-  // Function to filter questions based on the selected topic
   function handleTopicSelect(topic) {
     let filteredQuestions = [];
     if (topic === "Core JavaScript Concepts") {
@@ -39,9 +84,6 @@ function App() {
     } else {
       filteredQuestions = JsTopicQuestions.filter(q => q.topic === topic);
     }
-    
-    console.log("Selected topic:", topic);
-    console.log("Number of questions found:", filteredQuestions.length);
 
     setCurrentTopicQuestions(filteredQuestions);
     setCurrentTopic(topic);
@@ -49,45 +91,42 @@ function App() {
     setCurrentQuestionIndex(0);
     setScore(0);
     setAnsweredQuestions(new Set());
+    setExpiredQuestions(new Set());
+    // Reset all timers when a new topic is selected.
+    setQuestionTimers({});
   }
 
-  // Function to check the user's answer and update the score
   function handleAnswerSelected(selectedOption) {
-    // Prevents the score from being updated more than once per question
-    if (answeredQuestions.has(currentQuestionIndex)) {
+    // Prevent answering if the question has already been answered or if time is up.
+    if (answeredQuestions.has(currentQuestionIndex) || expiredQuestions.has(currentQuestionIndex)) {
       return;
     }
 
     const currentQuestion = currentTopicQuestions[currentQuestionIndex];
     if (selectedOption === currentQuestion.correctAnswer) {
       setScore(prevScore => prevScore + 10);
-      // Adds the question index to the Set of answered questions
-      setAnsweredQuestions(prev => new Set(prev.add(currentQuestionIndex)));
     }
+    // Mark the question as answered to prevent score changes on re-visit.
+    setAnsweredQuestions(prev => new Set(prev).add(currentQuestionIndex));
   }
 
-  // Function to advance to the next question
   function handleNextQuestion() {
     if (currentQuestionIndex < currentTopicQuestions.length - 1) {
       setCurrentQuestionIndex(prevIndex => prevIndex + 1);
     } else {
-      // If it's the last question of the Core quiz, store the final score
       if (currentTopic === "Core JavaScript Concepts") {
         setCoreQuizScore(score);
       }
-      // Transition to the results page
       setQuizPhase('results');
     }
   }
 
-  // Function to go back to the previous question
   function handlePreviousQuestion() {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(prevIndex => prevIndex - 1);
     }
   }
 
-  // Function to reset the quiz and return to topic selection
   function handleRestart() {
     setQuizPhase('topic-select');
   }
@@ -95,22 +134,12 @@ function App() {
   return (
     <div className="min-h-screen text-white flex items-center justify-center font-sans p-4 bg-slate-900">
       <div className="bg-slate-800 p-8 rounded-2xl shadow-lg w-full max-w-2xl">
-        {/* Conditional score display at the top of the app */}
-        {quizPhase !== 'start' && (
-          <div className="flex justify-end mb-4">
-            {quizPhase === 'results' ? (
-              <span className="text-xl font-bold text-yellow-300">
-                Final Score: {score} Points
-              </span>
-            ) : (
-              <span className="text-sm italic text-gray-400">
-                Score will be updated after you answer all questions
-              </span>
-            )}
+        {quizPhase === 'in-progress' && (
+          <div className="text-xl font-bold text-yellow-300 flex justify-end mb-4">
+             Score: {score} Points
           </div>
         )}
         
-        {/* Main conditional rendering block for the quiz phases */}
         {quizPhase === 'start' && (
           <StartQuiz onStartQuiz={handleStartz} />
         )}
@@ -126,7 +155,13 @@ function App() {
                 <Question 
                   currentQuestion={currentTopicQuestions[currentQuestionIndex]} 
                   onAnswerSelected={handleAnswerSelected}
-                  onNextQuestion={handleNextQuestion}
+                  currentQuestionIndex={currentQuestionIndex}
+                  totalQuestions={currentTopicQuestions.length}
+                  // Pass the correct time and expiration status for the current question
+                  timeLeft={questionTimers[currentQuestionIndex] ?? 60}
+                  isExpired={expiredQuestions.has(currentQuestionIndex)}
+                  answered={answeredQuestions.has(currentQuestionIndex)}
+                  selectedAnswer={currentTopicQuestions[currentQuestionIndex].selectedAnswer}
                 />
                 <div className="mt-8 flex justify-between items-center">
                   {currentQuestionIndex > 0 ? (

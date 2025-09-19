@@ -1,18 +1,30 @@
-import React from "react";
+import React from 'react';
 
-// Reusable component for a single quiz option button
-function OptionSelect({ option, onSelect, isSelected }) {
-  const baseClasses = "w-full p-4 border-2 rounded-lg text-left transition-colors duration-200 focus:outline-none focus:ring-4";
-  const selectedClasses = "bg-cyan-500 border-cyan-400 text-white font-semibold focus:ring-cyan-300";
-  const defaultClasses = "bg-slate-700 border-slate-600 hover:bg-slate-600 hover:border-slate-500 focus:ring-slate-500";
-  
+function OptionSelect({ option, selectedOption, onSelect, isDisabled }) {
+  const isSelected = selectedOption === option;
+
+  // Define base classes for the button
+  const baseClasses = "w-full text-left p-4 my-2 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2";
+
+  // Define classes for different states
+  const defaultClasses = "bg-slate-700 border-slate-600 hover:bg-slate-600 hover:border-cyan-500 focus:ring-cyan-400";
+  const selectedClasses = "bg-cyan-600 border-cyan-400 ring-2 ring-cyan-400";
+  const disabledClasses = "bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed";
+
+  // Combine classes based on the current state
+  const buttonClasses = `${baseClasses} ${
+    isDisabled ? disabledClasses : (isSelected ? selectedClasses : defaultClasses)
+  }`;
+
   return (
-    <button 
+    <button
       onClick={() => onSelect(option)}
-      className={`${baseClasses} ${isSelected ? selectedClasses : defaultClasses}`}
+      disabled={isDisabled}
+      className={buttonClasses}
     >
       {option}
     </button>
   );
 }
+
 export default OptionSelect;
